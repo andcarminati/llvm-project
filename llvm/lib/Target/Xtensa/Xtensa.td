@@ -201,6 +201,12 @@ def : Proc<"esp32s3", [FeatureDensity, FeatureSingleFloat, FeatureLoop, FeatureM
 include "XtensaRegisterInfo.td"
 
 //===----------------------------------------------------------------------===//
+// Register Banks Description
+//===----------------------------------------------------------------------===//
+
+include "XtensaRegisterBanks.td"
+
+//===----------------------------------------------------------------------===//
 // Calling Convention Description
 //===----------------------------------------------------------------------===//
 

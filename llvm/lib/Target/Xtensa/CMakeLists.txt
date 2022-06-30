@@ -9,12 +9,16 @@ tablegen(LLVM XtensaGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM XtensaGenDisassemblerTables.inc -gen-disassembler)
 tablegen(LLVM XtensaGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM XtensaGenMCCodeEmitter.inc -gen-emitter)
+tablegen(LLVM XtensaGenRegisterBank.inc -gen-register-bank)
 tablegen(LLVM XtensaGenRegisterInfo.inc -gen-register-info)
 tablegen(LLVM XtensaGenSubtargetInfo.inc -gen-subtarget)
 
 add_public_tablegen_target(XtensaCommonTableGen)
 
 add_llvm_target(XtensaCodeGen
+  GISel/XtensaLegalizerInfo.cpp
+  GISel/XtensaCallLowering.cpp
+  GISel/XtensaRegisterBankInfo.cpp
   XtensaAsmPrinter.cpp
   XtensaConstantPoolValue.cpp
   XtensaESP32PSRAMFix.cpp
