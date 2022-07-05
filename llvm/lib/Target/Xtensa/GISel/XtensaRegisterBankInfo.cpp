@@ -76,6 +76,15 @@ void XtensaRegisterBankInfo::setRegBank(MachineInstr &MI,
 
 }
 
+RegisterBankInfo::InstructionMappings 
+XtensaRegisterBankInfo::getInstrAlternativeMappings(const MachineInstr &MI) const {
+  auto Opc = MI.getOpcode();
+
+  InstructionMappings AltMappings;
+  return AltMappings;
+}
+
+
 const RegisterBankInfo::InstructionMapping &
 XtensaRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   auto Opc = MI.getOpcode();
