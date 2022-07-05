@@ -184,6 +184,8 @@ public:
   EmitInstrWithCustomInserter(MachineInstr &MI,
                               MachineBasicBlock *BB) const override;
 
+  CCAssignFn *CCAssignFnForReturn(CallingConv::ID CC) const;
+  
 private:
   const XtensaSubtarget &Subtarget;
 

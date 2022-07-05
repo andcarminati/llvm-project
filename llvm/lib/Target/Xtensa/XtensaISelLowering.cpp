@@ -788,6 +788,10 @@ CCAssignFn *XtensaTargetLowering::CCAssignFnForCall(CallingConv::ID CC,
   return CC_Xtensa_Custom;
 }
 
+CCAssignFn *XtensaTargetLowering::CCAssignFnForReturn(CallingConv::ID CC) const {
+  return RetCC_Xtensa;
+}
+
 // Value is a value that has been passed to us in the location described by VA
 // (and so has type VA.getLocVT()).  Convert Value to VA.getValVT(), chaining
 // any loads onto Chain.
