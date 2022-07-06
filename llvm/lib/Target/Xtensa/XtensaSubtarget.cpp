@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "XtensaSubtarget.h"
+#include "XtensaTargetMachine.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/Support/Debug.h"
 #include "GISel/XtensaCallLowering.h"
@@ -72,7 +73,7 @@ XtensaSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS) {
 }
 
 XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
-                                 const std::string &FS, const TargetMachine &TM)
+                                 const std::string &FS, const XtensaTargetMachine &TM)
     : XtensaGenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS), TargetTriple(TT),
       InstrInfo(initializeSubtargetDependencies(CPU, FS)), TLInfo(TM, *this),
       TSInfo(), FrameLowering() {
@@ -86,8 +87,8 @@ XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
   // FIXME: At this point, we can't rely on Subtarget having RBI.
   // It's awkward to mix passing RBI and the Subtarget; should we pass
   // TII/TRI as well?
-  //InstSelector.reset(createXtensaInstructionSelector(
-  //    *static_cast<const XtensaTargetMachine *>(&TM), *this, *RBI));
+  InstSelector.reset(createXtensaInstructionSelector(
+      *static_cast<const XtensaTargetMachine *>(&TM), *this, *RBI));
 
   //RegBankInfo.reset(RBI);
 }

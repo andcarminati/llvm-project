@@ -23,6 +23,9 @@
 namespace llvm {
 class XtensaTargetMachine;
 class FunctionPass;
+class InstructionSelector;
+class XtensaSubtarget;
+class XtensaRegisterBankInfo;
 
 FunctionPass *createXtensaISelDag(XtensaTargetMachine &TM,
                                   CodeGenOpt::Level OptLevel);
@@ -30,5 +33,9 @@ FunctionPass *createXtensaSizeReductionPass();
 FunctionPass *createXtensaHardwareLoops();
 FunctionPass *createXtensaFixupHwLoops();
 FunctionPass *createXtensaPSRAMCacheFixPass();
+
+InstructionSelector *createXtensaInstructionSelector(const XtensaTargetMachine &,
+                                                     XtensaSubtarget &,
+                                                     XtensaRegisterBankInfo &);
 } // namespace llvm
 #endif /* LLVM_LIB_TARGET_XTENSA_XTENSA_H */

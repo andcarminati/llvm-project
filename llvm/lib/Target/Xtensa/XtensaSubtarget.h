@@ -132,7 +132,7 @@ private:
 
 public:
   XtensaSubtarget(const Triple &TT, const std::string &CPU,
-                  const std::string &FS, const TargetMachine &TM);
+                  const std::string &FS, const XtensaTargetMachine &TM);
 
   const TargetFrameLowering *getFrameLowering() const override { return &FrameLowering; }
   const XtensaInstrInfo *getInstrInfo() const override { return &InstrInfo; }
