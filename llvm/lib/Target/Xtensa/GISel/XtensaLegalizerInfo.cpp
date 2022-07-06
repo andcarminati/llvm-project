@@ -23,6 +23,7 @@
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/TargetOpcodes.h"
 #include "llvm/CodeGen/ValueTypes.h"
+#include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/IntrinsicsAArch64.h"
@@ -38,24 +39,49 @@ using namespace LegalizeMutations;
 using namespace LegalityPredicates;
 using namespace MIPatternMatch;
 
+static bool CheckTyN(unsigned N, const LegalityQuery &Query,
+                     std::initializer_list<LLT> SupportedValues) {
+  return llvm::is_contained(SupportedValues, Query.Types[N]);
+}
 
 XtensaLegalizerInfo::XtensaLegalizerInfo(const XtensaSubtarget &ST)
     : ST(&ST) {
 
     using namespace TargetOpcode;
-    const LLT p0 = LLT::pointer(0, 64);
+    const LLT p0 = LLT::pointer(0, 32);
     const LLT s1 = LLT::scalar(1);
     const LLT s8 = LLT::scalar(8);
     const LLT s16 = LLT::scalar(16);
     const LLT s32 = LLT::scalar(32);
     const LLT s64 = LLT::scalar(64);
 
+    getActionDefinitionsBuilder({G_ADD, G_SUB})
+      .legalFor({s32})
+      .widenScalarToNextPow2(0)
+      .clampScalar(0, s32, s32)
+      .moreElementsToNextPow2(0);
+
+  getActionDefinitionsBuilder({G_AND, G_OR, G_XOR})
+      .legalIf([=, &ST](const LegalityQuery &Query) {
+        if (ST.hasBoolean() && CheckTyN(0, Query, {s1}))
+          return true;
+        else if(CheckTyN(0, Query, {s32}))
+          return true;
+        return false;  
+      })
+      .maxScalar(0, s32);
+
     getActionDefinitionsBuilder({G_LOAD, G_STORE})
-                               .legalForTypesWithMemDesc({{s8, p0, s8, 8},
-                                                          {s16, p0, s16, 8},
-                                                          {s32, p0, s32, 8},
-                                                          {p0, p0, p0, 8}})
+                               .legalForTypesWithMemDesc({{s8, p0, s8, 4},
+                                                          {s16, p0, s16, 4},
+                                                          {s32, p0, s32, 4},
+                                                          {p0, p0, p0, 4}})
                                .unsupportedIfMemSizeNotPow2();
+
+    // Constants
+    getActionDefinitionsBuilder({G_CONSTANT, G_FCONSTANT})
+      .legalFor({s32})
+      .clampScalar(0, s32, s32);
 
     getLegacyLegalizerInfo().computeTables();
     verify(*ST.getInstrInfo());
@@ -63,7 +89,17 @@ XtensaLegalizerInfo::XtensaLegalizerInfo(const XtensaSubtarget &ST)
 
 bool XtensaLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
                                           MachineInstr &MI) const {
-    return false;
+
+  using namespace TargetOpcode; 
+  MachineIRBuilder &MIRBuilder = Helper.MIRBuilder;
+  MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
+  GISelChangeObserver &Observer = Helper.Observer;
+  switch (MI.getOpcode()) {
+  default:
+    llvm_unreachable("expected case");
+  }
+
+  llvm_unreachable("expected switch to return"); 
 }                                             
 
 bool XtensaLegalizerInfo::legalizeIntrinsic(LegalizerHelper &Helper,
