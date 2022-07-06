@@ -40,7 +40,14 @@ protected:
 
  static RegisterBankInfo::PartialMapping PartMappings[];
  static RegisterBankInfo::ValueMapping ValMappings[];
- static PartialMappingIdx BankIDToCopyMapIdx[];  
+ static PartialMappingIdx BankIDToCopyMapIdx[]; 
+
+
+   /// Get the pointer to the ValueMapping of the operands of a copy
+  /// instruction from the \p SrcBankID register bank to the \p DstBankID
+  /// register bank with a size of \p Size.
+  static const RegisterBankInfo::ValueMapping *
+  getCopyMapping(unsigned DstBankID, unsigned SrcBankID, unsigned Size); 
 
 #define GET_TARGET_REGBANK_CLASS
 #include "XtensaGenRegisterBank.inc"

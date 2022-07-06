@@ -73,13 +73,13 @@ XtensaRegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
 
 void XtensaRegisterBankInfo::setRegBank(MachineInstr &MI,
                                       MachineRegisterInfo &MRI) const {
-
+    llvm_unreachable("setRegBank");                                   
 }
 
 RegisterBankInfo::InstructionMappings 
 XtensaRegisterBankInfo::getInstrAlternativeMappings(const MachineInstr &MI) const {
   auto Opc = MI.getOpcode();
-
+  llvm_unreachable("getInstrAlternativeMappings"); 
   InstructionMappings AltMappings;
   return AltMappings;
 }
@@ -87,9 +87,125 @@ XtensaRegisterBankInfo::getInstrAlternativeMappings(const MachineInstr &MI) cons
 
 const RegisterBankInfo::InstructionMapping &
 XtensaRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
-  auto Opc = MI.getOpcode();
+  //static TypeInfoForMF TI;
 
-  return getInvalidInstructionMapping();
+  // Reset TI internal data when MF changes.
+  //TI.cleanupIfNewFunction(MI.getMF()->getName());
+
+  unsigned Opc = MI.getOpcode();
+  const MachineFunction &MF = *MI.getParent()->getParent();
+  const MachineRegisterInfo &MRI = MF.getRegInfo();
+  const TargetSubtargetInfo &STI = MF.getSubtarget();
+  const TargetRegisterInfo &TRI = *STI.getRegisterInfo();
+
+  //MF.dump();
+
+  using namespace TargetOpcode;
+
+    // Try the default logic for non-generic instructions that are either copies
+  // or already have some operands assigned to banks.
+  if ((Opc != TargetOpcode::COPY && !isPreISelGenericOpcode(Opc)) ||
+      Opc == TargetOpcode::G_PHI) {
+    const RegisterBankInfo::InstructionMapping &Mapping =
+        getInstrMappingImpl(MI);
+    if (Mapping.isValid())
+      return Mapping;
+  }
+
+  unsigned NumOperands = MI.getNumOperands();
+  const ValueMapping *OperandsMapping = &Xtensa::ValueMappings[Xtensa::GPRIdx];
+  unsigned MappingID = DefaultMappingID;
+
+  // Check if LLT sizes match sizes of available register banks.
+  for (const MachineOperand &Op : MI.operands()) {
+    if (Op.isReg()) {
+      LLT RegTy = MRI.getType(Op.getReg());
+
+      if (RegTy.isScalar() &&
+          (RegTy.getSizeInBits() != 32)){
+              return getInvalidInstructionMapping();
+          }
+        
+
+      if (RegTy.isVector())
+        return getInvalidInstructionMapping();
+    }
+  }
+  //const LLT Op0Ty = MRI.getType(MI.getOperand(0).getReg());
+  //unsigned Op0Size = Op0Ty.getSizeInBits();
+  //InstType InstTy = InstType::Integer;
+  //MI.dump();
+  switch (Opc) {
+  case G_TRUNC:
+  case G_UMULH:
+  case G_ZEXTLOAD:
+  case G_SEXTLOAD:
+  case G_PTR_ADD:
+  case G_INTTOPTR:
+  case G_PTRTOINT:
+  case G_AND:
+  case G_OR:
+  case G_XOR:
+  case G_SHL:
+  case G_ASHR:
+  case G_LSHR:
+  case G_BRINDIRECT:
+  case G_VASTART:
+  case G_BSWAP:
+  case G_CTLZ:
+  case G_ADD:
+  case G_SUB:
+  case G_MUL:
+  case G_SDIV:
+  case G_SREM:
+  case G_UDIV:
+  case G_UREM:
+  case G_STORE:
+  case G_LOAD:
+  case G_PHI:
+  case G_SELECT:
+  case G_IMPLICIT_DEF:
+  case G_UNMERGE_VALUES:
+  case G_MERGE_VALUES: 
+  case G_FADD:
+  case G_FSUB:
+  case G_FMUL:
+  case G_FDIV:
+  case G_FABS:
+  case G_FSQRT:
+  case G_FCONSTANT:
+  case G_FCMP:
+  case G_FPEXT:
+  case G_FPTRUNC:
+  case G_FPTOSI:
+  case G_SITOFP:{
+    llvm_unreachable("Not implemented");
+  }
+  case G_CONSTANT:{
+    OperandsMapping =
+        getOperandsMapping({&Xtensa::ValueMappings[Xtensa::GPRIdx], nullptr});
+        //errs() << "aqui\n";
+    break;
+  }
+  case G_FRAME_INDEX:
+  case G_GLOBAL_VALUE:
+  case G_JUMP_TABLE:
+  case G_BRCOND:
+  case G_BRJT:
+  case G_ICMP:
+  case COPY: {
+    // COPY Instruction only have one op to be mapped
+    NumOperands = 1;
+  }
+  default:
+    //return getInvalidInstructionMapping();
+    break;
+  }
+  MI.dump();
+  errs() << "Operands: " << NumOperands << "\n";
+  errs() << "MIOperands: " << MI.getNumOperands() << "\n";
+  return getInstructionMapping(MappingID, /*Cost=*/1, OperandsMapping,
+                               NumOperands);
 }
 
 void XtensaRegisterBankInfo::applyMappingImpl(
