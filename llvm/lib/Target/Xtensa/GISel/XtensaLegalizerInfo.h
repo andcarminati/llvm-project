@@ -34,6 +34,10 @@ public:
                          MachineInstr &MI) const override;
 
 private:
+
+bool legalizeConstant(MachineInstr &MI, MachineRegisterInfo &MRI, 
+                      LegalizerHelper &Helper) const;
+
   const XtensaSubtarget *ST;
 
 };

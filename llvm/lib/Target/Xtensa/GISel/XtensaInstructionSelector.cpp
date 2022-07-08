@@ -13,11 +13,13 @@
 
 #include "MCTargetDesc/XtensaInstPrinter.h"
 //#include "XtensaMachineFunction.h"
+#include "XtensaRegisterInfo.h"
 #include "XtensaRegisterBankInfo.h"
 #include "XtensaTargetMachine.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelectorImpl.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
 #include "llvm/CodeGen/MachineJumpTableInfo.h"
+#include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/IR/IntrinsicsXtensa.h"
 
 #define DEBUG_TYPE "xtensa-isel"
@@ -40,6 +42,7 @@ public:
 
 private:
   bool selectImpl(MachineInstr &I, CodeGenCoverage &CoverageInfo) const;
+  bool selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const;                                                
   //bool isRegInGprb(Register Reg, MachineRegisterInfo &MRI) const;
   //bool isRegInFprb(Register Reg, MachineRegisterInfo &MRI) const;
   //bool materialize32BitImm(Register DestReg, APInt Imm,
@@ -92,18 +95,77 @@ XtensaInstructionSelector::XtensaInstructionSelector(
 {
 }
 
+bool XtensaInstructionSelector::selectConstant(MachineInstr &I, MachineRegisterInfo &MRI) const{
+  MachineBasicBlock &MBB = *I.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  MachineIRBuilder MIB(I);
+  MachinePointerInfo MPI = MachinePointerInfo::getConstantPool(MF);
+  MachineConstantPool *MCP = MF.getConstantPool();
+
+  int64_t Value = I.getOperand(1).getCImm()->getSExtValue();
+
+  auto Reg = I.getOperand(0).getReg();
+  if (Value >= -2048 && Value <= 2047) {
+
+    MIB.buildInstr(Xtensa::MOVI, {Reg}, {}).addImm(Value);
+
+  } else if (Value >= -32768 && Value <= 32767) {
+    int Low = Value & 0xFF;
+    int High = Value & ~0xFF;
+   
+    auto RegBefore = MRI.createVirtualRegister(&Xtensa::ARRegClass);
+    auto Mov = MIB.buildInstr(Xtensa::MOVI, {RegBefore}, {}).addImm(Low);
+    constrainSelectedInstRegOperands(*Mov, TII, TRI, RBI);
+
+    auto Add = MIB.buildInstr(Xtensa::ADDMI, {Reg}, {RegBefore}).addImm(High);
+    constrainSelectedInstRegOperands(*Add, TII, TRI, RBI);
+
+  } else if (Value >= -4294967296LL && Value <= 4294967295LL) {
+
+    // 32 bit arbirary constant
+    MachineConstantPool *MCP = MBB.getParent()->getConstantPool();
+    uint64_t UVal = ((uint64_t)Value) & 0xFFFFFFFFLL;
+    const Constant *CVal = ConstantInt::get(
+        Type::getInt32Ty(MBB.getParent()->getFunction().getContext()), UVal, false);
+    unsigned Idx = MCP->getConstantPoolIndex(CVal, Align(2U));
+    //	MCSymbol MSym
+    auto L32r = MIB.buildInstr(Xtensa::L32R, {Reg}, {}).addConstantPoolIndex(Idx);
+    constrainSelectedInstRegOperands(*L32r, TII, TRI, RBI);
+  } else {
+    // use L32R to let assembler load immediate best
+    // TODO replace to L32R
+    llvm_unreachable("Unsupported load immediate value");
+  }
+  I.eraseFromParent();
+  return true;
+}
+
 bool XtensaInstructionSelector::select(MachineInstr &I) {
 
   MachineBasicBlock &MBB = *I.getParent();
   MachineFunction &MF = *MBB.getParent();
   MachineRegisterInfo &MRI = MF.getRegInfo();
 
+  if (!isPreISelGenericOpcode(I.getOpcode())) {
+    //if (I.isCopy())
+    //  return selectCopy(I, MRI);
+
+    return true;
+  }
 
   if (selectImpl(I, *CoverageInfo))
     return true;
 
   MachineInstr *MI = nullptr;
   using namespace TargetOpcode;
+
+  switch (I.getOpcode()) {
+  case G_CONSTANT: {
+      return selectConstant(I, MRI);
+  }
+  default:
+    return false;
+  }
 
   return false;
 }

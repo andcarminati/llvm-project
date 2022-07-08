@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "XtensaLegalizerInfo.h"
-//#include "XtensaRegisterBankInfo.h"
+#include "XtensaRegisterBankInfo.h"
 #include "XtensaSubtarget.h"
 #include "llvm/CodeGen/GlobalISel/LegalizerHelper.h"
 #include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
@@ -95,6 +95,7 @@ bool XtensaLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
   MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
   GISelChangeObserver &Observer = Helper.Observer;
   switch (MI.getOpcode()) {
+  case G_CONSTANT: // already legalized. Just to have something here..
   default:
     llvm_unreachable("expected case");
   }
