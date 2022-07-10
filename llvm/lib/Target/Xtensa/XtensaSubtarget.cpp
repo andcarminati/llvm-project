@@ -82,7 +82,7 @@ XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
   //InlineAsmLoweringInfo.reset(new InlineAsmLowering(getTargetLowering()));
   Legalizer.reset(new XtensaLegalizerInfo(*this));
 
-  //auto *RBI = new XtensaRegisterBankInfo(*getRegisterInfo());
+  auto *RBI = new XtensaRegisterBankInfo(*getRegisterInfo());
 
   // FIXME: At this point, we can't rely on Subtarget having RBI.
   // It's awkward to mix passing RBI and the Subtarget; should we pass
@@ -90,7 +90,7 @@ XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
   InstSelector.reset(createXtensaInstructionSelector(
       *static_cast<const XtensaTargetMachine *>(&TM), *this, *RBI));
 
-  //RegBankInfo.reset(RBI);
+  RegBankInfo.reset(RBI);
 }
 
 

@@ -21,6 +21,11 @@
 #include "XtensaRegisterInfo.h"
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
+#include "llvm/CodeGen/GlobalISel/CallLowering.h"
+#include "llvm/CodeGen/GlobalISel/InlineAsmLowering.h"
+#include "llvm/CodeGen/GlobalISel/InstructionSelector.h"
+#include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
+#include "llvm/CodeGen/GlobalISel/RegisterBankInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -37,6 +42,13 @@ private:
   XtensaTargetLowering TLInfo;
   SelectionDAGTargetInfo TSInfo;
   XtensaFrameLowering FrameLowering;
+
+  /// GlobalISel related APIs.
+  std::unique_ptr<CallLowering> CallLoweringInfo;
+  std::unique_ptr<InlineAsmLowering> InlineAsmLoweringInfo;
+  std::unique_ptr<InstructionSelector> InstSelector;
+  std::unique_ptr<LegalizerInfo> Legalizer;
+  std::unique_ptr<RegisterBankInfo> RegBankInfo;
 
   // Enabled Xtensa Density extension
   bool HasDensity;
@@ -142,6 +154,13 @@ public:
 
   const XtensaTargetLowering *getTargetLowering() const override { return &TLInfo; }
   const SelectionDAGTargetInfo *getSelectionDAGInfo() const override { return &TSInfo; }
+
+  const CallLowering *getCallLowering() const override;
+  const InlineAsmLowering *getInlineAsmLowering() const override;
+  InstructionSelector *getInstructionSelector() const override;
+  const LegalizerInfo *getLegalizerInfo() const override;
+  const RegisterBankInfo *getRegBankInfo() const override;
+
 
   bool isWinABI() const { return hasWindowed(); }
 
